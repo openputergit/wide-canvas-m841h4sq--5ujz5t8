@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS App Icon Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        .drag-area {
+            border: 2px dashed #4B5563;
+            transition: all 0.3s ease;
+        }
+        .drag-area.active {
+            border: 2px solid #3B82F6;
+            background-color: #EFF6FF;
+        }
+        #preview {
+            object-fit: contain;
+            max-width: 300px;
+            max-height: 300px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8">iOS App Icon Generator</h1>
+        
+        <div class="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-6">
+            <div class="drag-area flex flex-col items-center justify-center h-64 rounded-lg mb-6 cursor-pointer">
+                <i class="bi bi-cloud-upload text-4xl text-gray-400 mb-4"></i>
+                <h3 class="text-lg font-medium mb-2">Drag & Drop your icon</h3>
+                <p class="text-sm text-gray-500 mb-4">or</p>
+                <button id="browseBtn" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">Browse File</button>
+                <input type="file" id="fileInput" hidden accept="image/*">
+                <p class="text-sm text-gray-500 mt-4">Required size: 1024 × 1024 pixels</p>
+            </div>
+
+            <div id="previewContainer" class="hidden text-center mb-6">
+                <h3 class="text-lg font-medium mb-4">Preview</h3>
+                <img id="preview" src="" alt="Preview" class="mx-auto rounded-lg border">
+            </div>
+
+            <div id="generateBtn" class="hidden">
+                <button onclick="generateIcons()" class="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600">
+                    Generate Icons
+                </button>
+            </div>
+
+            <div id="resultContainer" class="hidden mt-8">
+                <h3 class="text-lg font-medium mb-4">Generated Icons</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Icons will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dragArea = document.querySelector('.drag-area');
+        const browseBtn = document.querySelector('#browseBtn');
+        const fileInput = document.querySelector('#fileInput');
+        const preview = document.querySelector('#preview');
+        const previewContainer = document.querySelector('#previewContainer');
+        const generateBtn = document.querySelector('#generateBtn');
+        const resultContainer = document.querySelector('#resultContainer');
+
+        const iconSizes = [
+            { name: 'App Store', size: 1024 },
+            { name: 'iPhone App (@3x)', size: 180 },
+            { name: 'iPhone App (@2x)', size: 120 },
+            { name: 'iPad Pro App', size: 167 },
+            { name: 'iPad App', size: 152 },
+            { name: 'iPad Notifications', size: 40 },
+            { name: 'iPhone Notifications (@3x)', size: 60 },
+            { name: 'iPhone Notifications (@2x)', size: 40 },
+            { name: 'iPad Settings', size: 58 },
+            { name: 'iPhone Settings (@3x)', size: 87 },
+            { name: 'iPhone Spotlight (@3x)', size: 120 },
+            { name: 'iPad Spotlight', size: 80 }
+        ];
+
+        browseBtn.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if(file) handleFile(file);
+        });
+
+        dragArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dragArea.classList.add('active');
+        });
+
+        dragArea.addEventListener('dragleave', () => {
+            dragArea.classList.remove('active');
+        });
+
+        dragArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragArea.classList.remove('active');
+            const file = e.dataTransfer.files[0];
+            if(file) handleFile(file);
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please upload an image file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                const img = new Image();
+                img.onload = () => {
+                    if (img.width !== 1024 || img.height !== 1024) {
+                        alert('Please upload a 1024×1024 image');
+                        return;
+                    }
+                    preview.src = reader.result;
+                    previewContainer.classList.remove('hidden');
+                    generateBtn.classList.remove('hidden');
+                };
+                img.src = reader.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function generateIcons() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.src = preview.src;
+
+            resultContainer.classList.remove('hidden');
+            const iconGrid = resultContainer.querySelector('div');
+            iconGrid.innerHTML = '';
+
+            iconSizes.forEach(({name, size}) => {
+                canvas.width = size;
+                canvas.height = size;
+                ctx.drawImage(img, 0, 0, size, size);
+                
+                const iconContainer = document.createElement('div');
+                iconContainer.className = 'border rounded-lg p-4 text-center';
+                
+                const iconPreview = document.createElement('img');
+                iconPreview.src = canvas.toDataURL('image/png');
+                iconPreview.className = 'mx-auto mb-2 border rounded';
+                iconPreview.style.width = '100px';
+                iconPreview.style.height = '100px';
+
+                const downloadBtn = document.createElement('a');
+                downloadBtn.href = canvas.toDataURL('image/png');
+                downloadBtn.download = `icon_${size}x${size}.png`;
+                downloadBtn.className = 'bg-blue-500 text-white px-4 py-2 rounded-lg inline-block text-sm hover:bg-blue-600';
+                downloadBtn.textContent = `${name} (${size}×${size})`;
+
+                iconContainer.appendChild(iconPreview);
+                iconContainer.appendChild(downloadBtn);
+                iconGrid.appendChild(iconContainer);
+            });
+        }
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
